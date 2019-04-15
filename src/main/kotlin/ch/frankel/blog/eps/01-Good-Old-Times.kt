@@ -17,10 +17,10 @@ fun run(filename: String): Map<String, Int> {
         data[1] = (data[1] as String) + '\n'
         data[2] = null
         data[3] = 0
-        for (c in (data[1] as String).toCharArray()) {
+        while ((data[3] as Int) < (data[1] as String).length) {
             if (data[2] == null) {
-                if (c.isAlphaNumeric()) data[2] = data[3]
-            } else if (!c.isAlphaNumeric()) {
+                if ((data[1] as String).toCharArray()[(data[3] as Int)].isAlphaNumeric()) data[2] = data[3]
+            } else if (!(data[1] as String).toCharArray()[(data[3] as Int)].isAlphaNumeric()) {
                 data[4] = false
                 data[5] = (data[1] as String).substring(data[2] as Int, data[3] as Int).toLowerCase()
                 if ((data[5] as String).length >= 2 && !(data[0] as List<*>).contains(data[5])) {
@@ -49,17 +49,20 @@ fun run(filename: String): Map<String, Int> {
     repeat(25) { data.add(arrayOf<Any>()) }
     data.add("")  // data[25] is word,freq from file
     data.add(0)   // data[26] is freq
+    data.add(0)   // data[27] is index
     val h = read("word_freqs_$millis").iterator()
     while (h.hasNext()) {
         data[25] = h.next()
         data[26] = (data[25] as String).split(",")[1].toInt()
         data[25] = (data[25] as String).split(",")[0]
-        for (i in 0..24) {
-            if ((data[i] as Array<*>).isEmpty() || ((data[i] as Array<*>)[1] as Int) < data[26] as Int) {
-                data.add(i, arrayOf(data[25], data[26]))
+        data[27] = 0
+        while ((data[27] as Int) < 25) {
+            if ((data[(data[27] as Int)] as Array<*>).isEmpty() || ((data[(data[27] as Int)] as Array<*>)[1] as Int) < data[26] as Int) {
+                data.add((data[27] as Int), arrayOf(data[25], data[26]))
                 data.removeAt(25)
                 break
             }
+            data[27] = (data[27] as Int) + 1
         }
     }
     return data
