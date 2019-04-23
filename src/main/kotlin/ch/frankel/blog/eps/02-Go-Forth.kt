@@ -13,29 +13,44 @@ fun run(filename: String): Map<*, *> {
     removeStopWords()
     frequencies()
     sort()
-    heap["result"] = mutableMapOf<Any, Any>()
-    while (stack.isNotEmpty()) {
-        (heap["result"] as MutableMap<Any, Any>)[(stack.peek() as Pair<Any, *>).first] =
-            (stack.pop() as Pair<*, Any>).second
+    stack.push(mutableMapOf<Any, Any>())
+    while (stack.size > 1) {
+        stack.swap()
+        stack.push((stack.pop() as Pair<Any, Any>).putIn(stack.pop() as MutableMap<Any, Any>))
     }
-    return heap["result"] as Map<*, *>
+    return stack.pop() as Map<*, *>
 }
 
 fun readFile() {
     val f = read(stack.pop() as String)
-    stack.push(f)
+    stack.extend(f)
 }
 
 fun filterChars() {
-    stack.push(
-        (stack.pop() as List<*>)
-            .map { "\\W|_".toRegex().replace(it as String, " ") }
-            .map(String::toLowerCase))
+    stack.push(mutableListOf<String>())
+    while (stack.size > 1) {
+        stack.swap()
+        stack.push(
+            "\\W|_".toRegex()
+                .replace((stack.pop() as String), " ")
+                .toLowerCase()
+                .addTo(stack.pop() as MutableList<Any>)
+        )
+    }
+    stack.extend(stack.pop() as MutableList<Any>)
 }
 
 fun scan() {
-    stack.extend((stack.pop() as List<*>)
-        .flatMap { (it as String).split("\\s".toRegex()) })
+    stack.push(mutableListOf<String>())
+    while (stack.size > 1) {
+        stack.swap()
+        stack.push(
+            (stack.pop() as String)
+                .split("\\s".toRegex())
+                .allAddTo(stack.pop() as MutableList<Any>)
+        )
+    }
+    stack.extend(stack.pop() as MutableList<Any>)
 }
 
 fun removeStopWords() {
@@ -69,8 +84,19 @@ fun frequencies() {
 }
 
 fun sort() {
-    stack.extend((stack.pop() as Map<*, *>).entries
-        .map { it.key to it.value }
-        .sortedBy { it.second as Int }
-        .takeLast(25))
+    while ((stack.peek() as Map<*, *>).isNotEmpty()) {
+        stack.push((stack.peek() as MutableMap<*, *>).removeAny())
+        stack.swap()
+    }
+    stack.pop()
+    stack.push(mutableListOf<Any>())
+    while (stack.size > 1) {
+        stack.swap()
+        stack.pop().addTo(stack.peek() as MutableList<Any>)
+    }
+    (stack.peek() as MutableList<Pair<Any, Int>>).sortBy { -it.second }
+    stack.extend(stack.pop() as List<Any>)
+    while (stack.size > 25) {
+        stack.pop()
+    }
 }
