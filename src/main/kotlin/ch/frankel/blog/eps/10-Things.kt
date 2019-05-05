@@ -6,15 +6,17 @@ abstract class Exercise {
 
 class DataStorageManager(private val filename: String) : Exercise() {
 
-    fun words() = read(filename)
-        .flatMap { it.split("\\W|_".toRegex()) }
-        .filter { it.isNotBlank() && it.length >= 2 }
-        .map(String::toLowerCase)
+    val words: List<String> by lazy {
+        read(filename)
+            .flatMap { it.split("\\W|_".toRegex()) }
+            .filter { it.isNotBlank() && it.length >= 2 }
+            .map(String::toLowerCase)
+    }
 }
 
 class StopWordManager : Exercise() {
 
-    private val data = read("stop_words.txt")[0].split(",")
+    private val data: List<String> by lazy { read("stop_words.txt")[0].split(",") }
 
     override val info = "My major data structure is a ${data::class}"
 
@@ -26,20 +28,24 @@ class WordFrequencyManager(
     private val stopWordManager: StopWordManager
 ) : Exercise() {
 
-    fun top(): Map<String, Int> {
+    val top: Map<String, Int> by lazy {
         val data = mutableMapOf<String, Int>()
-        for (word in storageManager.words()) {
+        for (word in storageManager.words) {
             if (!stopWordManager.isStopWord(word))
                 data.merge(word, 1) { value, _ -> value + 1 }
         }
-        return data.toList().sortedByDescending { it.second }.take(25).toMap()
+        data.toList().sortedByDescending { it.second }.take(25).toMap()
     }
 }
 
 class WordFrequencyController(private val filename: String) : Exercise() {
 
-    fun run() = WordFrequencyManager(
-        DataStorageManager(filename),
-        StopWordManager()
-    ).top()
+    private val wordFrequencyManager: WordFrequencyManager by lazy {
+        WordFrequencyManager(
+            DataStorageManager(filename),
+            StopWordManager()
+        )
+    }
+
+    fun run() = wordFrequencyManager.top
 }
