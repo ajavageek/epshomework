@@ -19,3 +19,16 @@ internal fun <T> Collection<T>.allAddTo(collection: MutableCollection<T>)= colle
 internal fun <K, V> MutableMap<K, V>.removeAny() = iterator().next().toPair().also { remove(it.first) }
 
 internal fun <K, V> Pair<K, V>.putIn(map: MutableMap<K, V>) = map.also { map[first] = second }
+
+class Stack<T> {
+
+    private val list = LinkedList<T>()
+
+    val size: Int
+        get() = list.size
+
+    fun push(t: T?) = list.addFirst(t)
+    fun pop(): T = list.removeFirst()
+    fun peek(): T = list.peekFirst()
+    fun isNotEmpty() = list.isNotEmpty()
+}

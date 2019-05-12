@@ -1,7 +1,5 @@
 package ch.frankel.blog.eps
 
-import java.util.*
-
 private val stack = Stack<Any>()
 private val heap = mutableMapOf<Any, Any>()
 
