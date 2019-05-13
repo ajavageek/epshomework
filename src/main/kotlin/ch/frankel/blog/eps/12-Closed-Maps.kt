@@ -1,48 +1,62 @@
 package ch.frankel.blog.eps
 
-internal fun extractWords(obj: MutableMap<String, Any>, filename: String) {
-    obj["data"] = read(filename)
+private const val DATA = "data"
+private const val STOP_WORDS = "stop_words"
+private const val FREQUENCIES = "freqs"
+private const val INIT = "init"
+private const val WORDS = "words"
+private const val IS_STOP_WORD = "is_stop_word"
+private const val INCREMENT_COUNT = "increment_count"
+private const val SORTED = "sorted"
+
+typealias Runnable = () -> Unit
+typealias Supplier<T> = () -> T
+typealias Function<T, R> = (T) -> R
+typealias Consumer<T> = (T) -> Unit
+
+internal fun MutableMap<String, Any>.extractWords(filename: String) {
+    this[DATA] = read(filename)
         .flatMap { it.split("\\W|_".toRegex()) }
         .filter { it.isNotBlank() && it.length >= 2 }
         .map(String::toLowerCase)
 }
 
-internal fun loadStopWords(obj: MutableMap<String, Any>) {
-    obj["stop_words"] = read("stop_words.txt")[0].split(",")
+internal fun MutableMap<String, Any>.loadStopWords() {
+    this[STOP_WORDS] = read("stop_words.txt")[0].split(",")
 }
 
-internal fun incrementCount(obj: MutableMap<String, Any>, word: String) {
-    (obj["freqs"] as MutableMap<String, Int>).apply {
+internal fun MutableMap<String, Any>.incrementCount(word: String) {
+    (this[FREQUENCIES] as MutableMap<String, Int>).apply {
         merge(word, 1) { value, _ -> value + 1 }
     }
 }
 
 fun run(filename: String): Map<*, *> {
     val dataStorageObj = mutableMapOf<String, Any>()
-    dataStorageObj["init"] = { extractWords(dataStorageObj, filename) }
-    dataStorageObj["words"] = { dataStorageObj["data"] }
+    dataStorageObj[INIT] = { dataStorageObj.extractWords(filename) }
+    dataStorageObj[WORDS] = { dataStorageObj[DATA] }
     (dataStorageObj["init"] as () -> Unit)()
 
     val stopWordsObj = mutableMapOf<String, Any>()
-    stopWordsObj["init"] = { loadStopWords(stopWordsObj) }
-    stopWordsObj["is_stop_word"] = { it: String -> (stopWordsObj["stop_words"] as List<*>).contains(it) }
+    stopWordsObj[INIT] = { stopWordsObj.loadStopWords() }
+    stopWordsObj[IS_STOP_WORD] = { it: String -> (stopWordsObj[STOP_WORDS] as List<*>).contains(it) }
     (stopWordsObj["init"] as () -> Unit)()
 
     val wordFreqsObj = mutableMapOf<String, Any>(
-        "freqs" to mutableMapOf<String, Int>()
+        FREQUENCIES to mutableMapOf<String, Int>()
     )
-    wordFreqsObj["increment_count"] = { it: String -> incrementCount(wordFreqsObj, it) }
-    wordFreqsObj["sorted"] = {
-        (wordFreqsObj["freqs"] as MutableMap<String, Int>)
+    wordFreqsObj[INCREMENT_COUNT] = { it: String -> wordFreqsObj.incrementCount(it) }
+    wordFreqsObj[SORTED] = {
+        (wordFreqsObj[FREQUENCIES] as MutableMap<*, Int>)
             .toList()
             .sortedByDescending { it.second }
             .take(25)
             .toMap()
     }
 
-    for (word in (dataStorageObj["words"] as () -> List<String>)()) {
-        if (!(stopWordsObj["is_stop_word"] as (String) -> Boolean)(word))
-            (wordFreqsObj["increment_count"] as (String) -> Unit)(word)
+    for (word in (dataStorageObj[WORDS] as Supplier<List<String>>)()) {
+        if (!(stopWordsObj[IS_STOP_WORD] as Function<String, Boolean>)(word))
+            (wordFreqsObj[INCREMENT_COUNT] as Consumer<String>)(word)
     }
-    return (wordFreqsObj["sorted"] as () -> Map<*, *>)()
+    return (wordFreqsObj[SORTED] as Supplier<Map<*, *>>)()
 }
