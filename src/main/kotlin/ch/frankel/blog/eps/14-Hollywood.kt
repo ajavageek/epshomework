@@ -1,10 +1,14 @@
 package ch.frankel.blog.eps
 
+typealias StringConsumer = (String) -> Unit
+typealias Runnable = () -> Unit
+typealias MapSupplier = () -> Map<String, Int>
+
 class WordFrequencyFramework {
 
-    private val loadEventHandlers = mutableListOf<(String) -> Unit>()
-    private val doWorkEventHandlers = mutableListOf<() -> Unit>()
-    private val endEventHandlers = mutableListOf<() -> Map<String, Int>>()
+    private val loadEventHandlers = mutableListOf<StringConsumer>()
+    private val doWorkEventHandlers = mutableListOf<Runnable>()
+    private val endEventHandlers = mutableListOf<MapSupplier>()
 
     fun run(filename: String): Map<String, Int> {
         for (handler in loadEventHandlers) {
@@ -18,9 +22,9 @@ class WordFrequencyFramework {
             .invoke()
     }
 
-    fun registerForLoadEvents(handler: (String) -> Unit) = loadEventHandlers.add(handler)
-    fun registerForDoWorkEvents(handler: () -> Unit) = doWorkEventHandlers.add(handler)
-    fun registerForEndEvents(handler: () -> Map<String, Int>) = endEventHandlers.add(handler)
+    fun registerForLoadEvents(handler: StringConsumer) = loadEventHandlers.add(handler)
+    fun registerForDoWorkEvents(handler: Runnable) = doWorkEventHandlers.add(handler)
+    fun registerForEndEvents(handler: MapSupplier) = endEventHandlers.add(handler)
 }
 
 class DataStorage(
@@ -28,14 +32,14 @@ class DataStorage(
     private val stopWordsFilter: StopWordsFilter
 ) {
     private lateinit var data: List<String>
-    private val wordEventHandlers = mutableListOf<(String) -> Unit>()
+    private val wordEventHandlers = mutableListOf<StringConsumer>()
 
     init {
         wfApp.registerForLoadEvents { load(it) }
         wfApp.registerForDoWorkEvents { produceWords() }
     }
 
-    fun registerForWordEvents(handler: (String) -> Unit)  = wordEventHandlers.add(handler)
+    fun registerForWordEvents(handler: StringConsumer)  = wordEventHandlers.add(handler)
 
     private fun load(filename: String) {
         data = read(filename)
@@ -78,7 +82,7 @@ class WordFrequencyCounter(
 
     init {
         wfApp.registerForEndEvents { getTop25() }
-        dataStorage.registerForWordEvents { it: String -> incrementCount(it) }
+        dataStorage.registerForWordEvents { incrementCount(it) }
     }
 
     private fun incrementCount(word: String) = wordFreqs.merge(word, 1) { value, _ -> value + 1 }
