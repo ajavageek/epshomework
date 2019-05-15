@@ -1,15 +1,15 @@
 package ch.frankel.blog.eps
 
-import ch.frankel.blog.eps.EventManager.*
+import com.google.common.eventbus.EventBus
 
 /* For compiling purpose. */
 fun run(filename: String): Map<String, Int> {
-    EventManager().apply {
+    EventBus().apply {
         DataStorage(this)
         StopWordsFilter(this)
         WordFrequencyCounter(this)
         val app = WordFrequencyApplication(this)
-        publish(Event(Type.Run, filename))
+        post(RunEvent(filename))
         return app.result
     }
 }
