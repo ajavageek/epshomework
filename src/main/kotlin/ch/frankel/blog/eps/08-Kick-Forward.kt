@@ -26,7 +26,7 @@ fun run(filename: String): Map<String, Int> {
                             Map<String, Int>>,
                     Map<String, Int>>,
             Map<String, Int>> = ::readFile
-    return function.invoke(filename, ::filterChars)
+    return function(filename, ::filterChars)
 }
 
 fun readFile(
@@ -52,7 +52,7 @@ fun readFile(
             Map<String, Int>>
 ): Map<String, Int> {
     val data = read(filename)
-    return function.invoke(data, ::normalize)
+    return function(data, ::normalize)
 }
 
 fun filterChars(
@@ -77,7 +77,7 @@ fun filterChars(
     val pattern = "\\W|_".toRegex()
     val filtered = lines
         .map { it.replace(pattern, " ") }
-    return function.invoke(filtered, ::scan)
+    return function(filtered, ::scan)
 }
 
 fun normalize(
@@ -97,7 +97,7 @@ fun normalize(
             Map<String, Int>>
 ): Map<String, Int> {
     val normalized = lines.map { it.toLowerCase() }
-    return function.invoke(normalized, ::removeStopWords)
+    return function(normalized, ::removeStopWords)
 }
 
 fun scan(
@@ -115,7 +115,7 @@ fun scan(
 ): Map<String, Int> {
     val split = lines.flatMap { it.split(" ") }
         .filter { it.isNotBlank() && it.length >= 2 }
-    return function.invoke(split, ::frequencies)
+    return function(split, ::frequencies)
 }
 
 fun removeStopWords(
@@ -129,7 +129,7 @@ fun removeStopWords(
             Map<String, Int>>
 ): Map<String, Int> {
     val stopWords = read("stop_words.txt").flatMap { it.split(",") }
-    return function.invoke(words - stopWords, ::sort)
+    return function(words - stopWords, ::sort)
 }
 
 fun frequencies(
@@ -142,7 +142,7 @@ fun frequencies(
     val frequencies = words
         .groupBy { it }
         .map { it.key to it.value.size }
-    return function.invoke(frequencies, ::updateState)
+    return function(frequencies, ::updateState)
 }
 
 fun sort(
@@ -150,7 +150,7 @@ fun sort(
     function: KFunction1<List<Pair<String, Int>>, Map<String, Int>>
 ): Map<String, Int> {
     val top = frequencies.sortedBy { it.second }.takeLast(25)
-    return function.invoke(top)
+    return function(top)
 }
 
 fun updateState(top: List<Pair<String, Int>>) = top.toMap()
