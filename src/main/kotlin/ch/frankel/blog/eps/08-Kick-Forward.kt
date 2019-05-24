@@ -15,15 +15,9 @@ typealias ScanFunction = KFunction2<Lines, RemoveFunction, Map<String, Int>>
 typealias NormalizeFunction = KFunction2<Lines, ScanFunction, Map<String, Int>>
 typealias ReadFunction = KFunction2<Lines, NormalizeFunction, Map<String, Int>>
 
-fun run(filename: String): Map<String, Int> {
-    val function = ::readFile
-    return function(filename, ::filterChars)
-}
+fun run(filename: String) = (::readFile)(filename, ::filterChars)
 
-fun readFile(filename: String, function: ReadFunction): Map<String, Int> {
-    val data = read(filename)
-    return function(data, ::normalize)
-}
+fun readFile(filename: String, function: ReadFunction) = function(read(filename), ::normalize)
 
 fun filterChars(lines: List<String>, function: NormalizeFunction): Map<String, Int> {
     val pattern = "\\W|_".toRegex()
@@ -32,10 +26,11 @@ fun filterChars(lines: List<String>, function: NormalizeFunction): Map<String, I
     return function(filtered, ::scan)
 }
 
-fun normalize(lines: List<String>, function: ScanFunction): Map<String, Int> {
-    val normalized = lines.map { it.toLowerCase() }
-    return function(normalized, ::removeStopWords)
-}
+fun normalize(lines: List<String>, function: ScanFunction) =
+    function(
+        lines.map { it.toLowerCase() },
+        ::removeStopWords
+    )
 
 fun scan(lines: Lines, function: RemoveFunction): Map<String, Int> {
     val split = lines.flatMap { it.split(" ") }
@@ -55,9 +50,7 @@ fun frequencies(words: Words, function: SortFunction): Map<String, Int> {
     return function(frequencies, ::updateState)
 }
 
-fun sort(frequencies: WordFrequencies, function: MapFunction): Map<String, Int> {
-    val top = frequencies.sortedBy { it.second }.takeLast(25)
-    return function(top)
-}
+fun sort(frequencies: WordFrequencies, function: MapFunction) =
+    function(frequencies.sortedBy { it.second }.takeLast(25))
 
 fun updateState(top: WordFrequencies) = top.toMap()
