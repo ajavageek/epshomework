@@ -10,9 +10,7 @@ import org.aspectj.lang.annotation.Before
 @Aspect
 class AspectUtils {
 
-    @Around("""execution (* _18_AspectsKt.extractWords(..))
-                  || execution (* _18_AspectsKt.frequencies(..))
-                  || execution (* _18_AspectsKt.sort(..))""")
+    @Around("execution (* ch.frankel.blog.eps..*(..))")
     fun profile(joinPoint: ProceedingJoinPoint): Any? {
         val start = System.currentTimeMillis()
         val result = joinPoint.proceed()
@@ -20,16 +18,12 @@ class AspectUtils {
         return result
     }
 
-    @Before("""call (* _18_AspectsKt.extractWords(..))
-                  || call (* _18_AspectsKt.frequencies(..))
-                  || call (* _18_AspectsKt.sort(..))""")
+    @Before("call (* ch.frankel.blog.eps..*(..))")
     fun traceBefore(joinPoint: JoinPoint) {
         println("Start ${joinPoint.signature}")
     }
 
-    @After("""call (* _18_AspectsKt.extractWords(..))
-                  || call (* _18_AspectsKt.frequencies(..))
-                  || call (* _18_AspectsKt.sort(..))""")
+    @After("call (* ch.frankel.blog.eps..*(..))")
     fun traceAfter(joinPoint: JoinPoint) {
         println("End ${joinPoint.signature}")
     }
