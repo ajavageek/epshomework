@@ -10,23 +10,18 @@ fun run(filename: String): Map<String, Int> {
         read("stop_words.txt")
             .flatMap { it.split(",") }
     }
-    val nonStopWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
-        allWords.value.filter { !stopWords.value.contains(it) }
+    val nonStopWords: Cell<List<Any>, (List<String>) -> List<Any>> = Cell(listOf()) { words: List<String> ->
+        words.filter { !stopWords.value.contains(it) }
     }
-    val uniqueWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
-        nonStopWords.value.distinct()
+    val counts: Cell<List<Any>, (List<String>) -> List<Pair<String, Int>>> = Cell(listOf()) { words ->
+        words.groupingBy { it }.eachCount().toList()
     }
-    val counts: Cell<List<Any>, () -> List<Any>> = Cell(listOf<Int>()) {
-        uniqueWords.value.map { unique ->
-            allWords.value.count { it == unique }
-        }
-    }
-    val sortedData: Cell<List<Any>, () -> List<Any>> = Cell(listOf<Pair<String, Int>>()) {
-        uniqueWords.value.zip(counts.value).sortedByDescending { it.second as Int }
+    val sortedData: Cell<List<Any>, (List<Pair<String, Int>>) -> List<Any>> = Cell(listOf()) { frequencies ->
+        frequencies.sortedByDescending { it.second }
     }
 
     val spreadsheet: Spreadsheet =
-        listOf(allWords, stopWords, nonStopWords, uniqueWords, counts, sortedData)
+        listOf(stopWords, allWords, nonStopWords, counts, sortedData)
 
     update(spreadsheet)
 
@@ -34,12 +29,15 @@ fun run(filename: String): Map<String, Int> {
 }
 
 private fun update(cells: Spreadsheet) {
-    cells.forEach {
-        it.formula?.let { f ->
-            it.value = f()
+    cells.forEachIndexed { i, cell ->
+        val f = cell.formula
+        if (f is () -> List<Any>) cell.value = f()
+        else {
+            val g = f as (List<Any>) -> List<Any>
+            cell.value = g(cells[i - 1].value)
         }
     }
 }
 
-typealias Spreadsheet = List<Cell<List<Any>, out (() -> List<Any>)?>>
+typealias Spreadsheet = List<Cell<List<Any>, out Function<List<Any>>>>
 data class Cell<T, V>(var value: T, var formula: V)
