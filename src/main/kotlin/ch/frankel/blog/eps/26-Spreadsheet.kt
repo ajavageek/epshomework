@@ -1,17 +1,24 @@
 package ch.frankel.blog.eps
 
 fun run(filename: String): Map<String, Int> {
-    val allCells: Cell<List<Any>, (() -> List<Any>)?> = Cell(listOf<String>(), null)
-    val stopWords: Cell<List<Any>, (() -> List<Any>)?> = Cell(listOf<String>(), null)
+    val allWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
+        read(filename)
+            .flatMap { it.toLowerCase().split("\\W|_".toRegex()) }
+            .filter { it.isNotBlank() && it.length >= 2 }
+    }
+    val stopWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
+        read("stop_words.txt")
+            .flatMap { it.split(",") }
+    }
     val nonStopWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
-        allCells.value.filter { !stopWords.value.contains(it) }
+        allWords.value.filter { !stopWords.value.contains(it) }
     }
     val uniqueWords: Cell<List<Any>, () -> List<Any>> = Cell(listOf<String>()) {
         nonStopWords.value.distinct()
     }
     val counts: Cell<List<Any>, () -> List<Any>> = Cell(listOf<Int>()) {
         uniqueWords.value.map { unique ->
-            allCells.value.count { it == unique }
+            allWords.value.count { it == unique }
         }
     }
     val sortedData: Cell<List<Any>, () -> List<Any>> = Cell(listOf<Pair<String, Int>>()) {
@@ -19,14 +26,7 @@ fun run(filename: String): Map<String, Int> {
     }
 
     val spreadsheet: Spreadsheet =
-        listOf(allCells, stopWords, nonStopWords, uniqueWords, counts, sortedData)
-
-    allCells.value = read(filename)
-        .flatMap { it.toLowerCase().split("\\W|_".toRegex()) }
-        .filter { it.isNotBlank() && it.length >= 2 }
-
-    stopWords.value = read("stop_words.txt")
-        .flatMap { it.split(",") }
+        listOf(allWords, stopWords, nonStopWords, uniqueWords, counts, sortedData)
 
     update(spreadsheet)
 
