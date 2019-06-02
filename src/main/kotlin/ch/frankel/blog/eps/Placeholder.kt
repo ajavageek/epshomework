@@ -1,5 +1,7 @@
 package ch.frankel.blog.eps
 
+import java.util.concurrent.Executors
+
 fun run(filename: String): Map<String, Int> {
     val dataStorageManager = DataStorageManager()
     val stopWordManager = StopWordManager()
@@ -8,16 +10,9 @@ fun run(filename: String): Map<String, Int> {
     dataStorageManager.send(DataStorageManager.Init(filename, stopWordManager))
     stopWordManager.send(StopWordManager.Init(wordFrequencyManager))
     wordFrequencyController.send(WordFrequencyController.Run(dataStorageManager))
-    listOf(dataStorageManager, stopWordManager, wordFrequencyManager)
-        .forEach {
-            createThread(it) { start() }
-        }
-    createThread(wordFrequencyController) {
-        start()
-        join()
-    }
+    val executorService = Executors.newFixedThreadPool(4)
+    listOf(dataStorageManager, stopWordManager, wordFrequencyManager, wordFrequencyController)
+        .map { executorService.submit(it) }[3]
+        .get()
     return wordFrequencyController.getResult()
 }
-
-private fun <T: Actor> createThread(actor: T, f: Thread.() -> Unit = {}) =
-    Thread(actor, actor::class.simpleName).apply { f(this) }
