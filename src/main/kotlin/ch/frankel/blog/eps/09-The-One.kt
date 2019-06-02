@@ -1,24 +1,15 @@
 package ch.frankel.blog.eps
 
-class TheOne(private var value: Any) {
+fun run(filename: String) = filename
+    .pipe(::readFile)
+    .pipe(::filterChars)
+    .pipe(::normalize)
+    .pipe(::removeStopWords)
+    .pipe(::frequencies)
+    .pipe(::sorted)
+    .pipe(::top25)
 
-    val map: Map<String, Int>
-        get() = (value as List<Pair<String, Int>>).toMap()
-
-    fun <T, V : Any> bind(function: (T) -> V) = apply {
-        value = function(value as T)
-    }
-}
-
-fun run(filename: String) = TheOne(filename)
-    .bind(::readFile)
-    .bind(::filterChars)
-    .bind(::normalize)
-    .bind(::removeStopWords)
-    .bind(::frequencies)
-    .bind(::sorted)
-    .bind(::top25)
-    .map
+fun <T, V> T.pipe(function: (T) -> V) = function(this)
 
 fun readFile(filename: String) = read(filename)
 
@@ -41,4 +32,4 @@ fun sorted(frequencies: List<Pair<String, Int>>) =
     frequencies.sortedByDescending { it.second }
 
 fun top25(frequencies: List<Pair<String, Int>>) =
-    frequencies.take(25)
+    frequencies.take(25).toMap()
