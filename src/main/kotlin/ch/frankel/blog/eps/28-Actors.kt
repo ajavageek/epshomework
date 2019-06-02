@@ -3,14 +3,14 @@ package ch.frankel.blog.eps
 import ch.frankel.blog.eps.DataStorageManager.SendWordFrequencies
 import ch.frankel.blog.eps.Message.Die
 import ch.frankel.blog.eps.WordFrequencyController.Result
-import ch.frankel.blog.eps.WordFrequencyManager.*
+import ch.frankel.blog.eps.WordFrequencyManager.Top25
+import ch.frankel.blog.eps.WordFrequencyManager.Word
 import java.util.*
 
 abstract class Actor : Runnable {
 
     private val queue = ArrayDeque<Message>()
     private var stop = false
-    internal var thread = Thread(this, this::class.simpleName).apply { start() }
 
     final override fun run() {
         println("[${Thread.currentThread().name}] Starting")
@@ -147,7 +147,6 @@ class WordFrequencyController : Actor() {
     }
 
     fun getResult(): Map<String, Int> {
-        thread.join()
         return result
     }
 }
