@@ -10,17 +10,11 @@ abstract class Actor : Runnable {
 
     private val queue = ArrayDeque<Message>()
     private var stop = false
-
-    val isRunning: Boolean
-        get() = !stop
-
-    init {
-        Thread(this, this::class.simpleName).start()
-    }
+    internal var thread = Thread(this, this::class.simpleName).apply { start() }
 
     final override fun run() {
         println("[${Thread.currentThread().name}] Starting")
-        while (isRunning) {
+        while (!stop) {
             val message: Message? = queue.poll()
             if (message == null)
                 println("[${Thread.currentThread().name}] Empty queue. Passing")
@@ -131,7 +125,7 @@ class WordFrequencyController : Actor() {
     class Run(val dataStorageManager: DataStorageManager) : Message()
 
     private lateinit var dataStorageManager: DataStorageManager
-    lateinit var result: Map<String, Int>
+    private lateinit var result: Map<String, Int>
 
     override fun dispatch(message: Message) {
         println("[${Thread.currentThread().name}] Dispatching $message")
@@ -150,6 +144,11 @@ class WordFrequencyController : Actor() {
         result = message.frequencies.take(25).toMap()
         dataStorageManager.send(Die)
         send(Die)
+    }
+
+    fun getResult(): Map<String, Int> {
+        thread.join()
+        return result
     }
 }
 

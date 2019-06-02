@@ -7,8 +7,5 @@ fun run(filename: String): Map<String, Int> {
     dataStorageManager.send(DataStorageManager.Init(filename, stopWordManager))
     stopWordManager.send(StopWordManager.Init(WordFrequencyManager()))
     wordFrequencyController.send(WordFrequencyController.Run(dataStorageManager))
-    while (wordFrequencyController.isRunning) {
-        Thread.sleep(200)
-    }
-    return wordFrequencyController.result
+    return wordFrequencyController.getResult()
 }
