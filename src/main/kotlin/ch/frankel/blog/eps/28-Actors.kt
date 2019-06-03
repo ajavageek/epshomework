@@ -6,7 +6,7 @@ import ch.frankel.blog.eps.WordFrequencyController.Result
 import ch.frankel.blog.eps.WordFrequencyManager.Top25
 import ch.frankel.blog.eps.WordFrequencyManager.Word
 import java.util.*
-import java.util.concurrent.Callable
+import java.util.function.Supplier
 
 abstract class Actor {
 
@@ -127,7 +127,7 @@ class WordFrequencyManager : RunnableActor() {
     }
 }
 
-class WordFrequencyController : Actor(), Callable<Map<String, Int>> {
+class WordFrequencyController : Actor(), Supplier<Map<String, Int>> {
 
     class Result(val frequencies: List<Pair<String, Int>>) : Message()
     class Run(val dataStorageManager: DataStorageManager) : Message()
@@ -135,7 +135,7 @@ class WordFrequencyController : Actor(), Callable<Map<String, Int>> {
     private lateinit var dataStorageManager: DataStorageManager
     private lateinit var result: Map<String, Int>
 
-    override fun call(): Map<String, Int> {
+    override fun get(): Map<String, Int> {
         loop()
         return result
     }

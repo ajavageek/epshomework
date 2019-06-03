@@ -1,5 +1,6 @@
 package ch.frankel.blog.eps
 
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 
 fun run(filename: String): Map<String, Int> {
@@ -10,8 +11,10 @@ fun run(filename: String): Map<String, Int> {
     dataStorageManager.send(DataStorageManager.Init(filename, stopWordManager))
     stopWordManager.send(StopWordManager.Init(wordFrequencyManager))
     wordFrequencyController.send(WordFrequencyController.Run(dataStorageManager))
-    val executorService = Executors.newFixedThreadPool(4)
-    listOf(dataStorageManager, stopWordManager, wordFrequencyManager)
-        .forEach { executorService.submit(it) }
-    return executorService.submit(wordFrequencyController).get()
+    with (Executors.newFixedThreadPool(4)) {
+        CompletableFuture.runAsync(dataStorageManager, this)
+        CompletableFuture.runAsync(stopWordManager, this)
+        CompletableFuture.runAsync(wordFrequencyManager, this)
+        return CompletableFuture.supplyAsync(wordFrequencyController, this).get()
+    }
 }
