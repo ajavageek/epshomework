@@ -6,13 +6,14 @@ import ch.frankel.blog.eps.WordFrequencyController.Result
 import ch.frankel.blog.eps.WordFrequencyManager.Top25
 import ch.frankel.blog.eps.WordFrequencyManager.Word
 import java.util.*
+import java.util.concurrent.Callable
 
-abstract class Actor : Runnable {
+abstract class Actor {
 
     private val queue = ArrayDeque<Message>()
     private var stop = false
 
-    final override fun run() {
+    fun loop() {
         println("[${Thread.currentThread().name}] Starting")
         while (!stop) {
             val message: Message? = queue.poll()
@@ -32,7 +33,14 @@ abstract class Actor : Runnable {
     fun send(message: Message) = queue.add(message)
 }
 
-class DataStorageManager : Actor() {
+abstract class RunnableActor: Actor(), Runnable {
+
+    final override fun run() {
+        loop()
+    }
+}
+
+class DataStorageManager : RunnableActor() {
 
     class Init(val filename: String, val stopWordManager: StopWordManager) : Message()
     class SendWordFrequencies(val receiver: WordFrequencyController) : Message()
@@ -64,7 +72,7 @@ class DataStorageManager : Actor() {
     }
 }
 
-class StopWordManager : Actor() {
+class StopWordManager : RunnableActor() {
 
     private lateinit var stopWords: List<String>
     private lateinit var wordFrequencyManager: WordFrequencyManager
@@ -93,7 +101,7 @@ class StopWordManager : Actor() {
     }
 }
 
-class WordFrequencyManager : Actor() {
+class WordFrequencyManager : RunnableActor() {
 
     class Word(val word: String) : Message()
     class Top25(val receiver: WordFrequencyController) : Message()
@@ -119,13 +127,18 @@ class WordFrequencyManager : Actor() {
     }
 }
 
-class WordFrequencyController : Actor() {
+class WordFrequencyController : Actor(), Callable<Map<String, Int>> {
 
     class Result(val frequencies: List<Pair<String, Int>>) : Message()
     class Run(val dataStorageManager: DataStorageManager) : Message()
 
     private lateinit var dataStorageManager: DataStorageManager
     private lateinit var result: Map<String, Int>
+
+    override fun call(): Map<String, Int> {
+        loop()
+        return result
+    }
 
     override fun dispatch(message: Message) {
         println("[${Thread.currentThread().name}] Dispatching $message")
@@ -144,10 +157,6 @@ class WordFrequencyController : Actor() {
         result = message.frequencies.take(25).toMap()
         dataStorageManager.send(Die)
         send(Die)
-    }
-
-    fun getResult(): Map<String, Int> {
-        return result
     }
 }
 

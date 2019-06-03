@@ -11,8 +11,7 @@ fun run(filename: String): Map<String, Int> {
     stopWordManager.send(StopWordManager.Init(wordFrequencyManager))
     wordFrequencyController.send(WordFrequencyController.Run(dataStorageManager))
     val executorService = Executors.newFixedThreadPool(4)
-    listOf(dataStorageManager, stopWordManager, wordFrequencyManager, wordFrequencyController)
-        .map { executorService.submit(it) }[3]
-        .get()
-    return wordFrequencyController.getResult()
+    listOf(dataStorageManager, stopWordManager, wordFrequencyManager)
+        .forEach { executorService.submit(it) }
+    return executorService.submit(wordFrequencyController).get()
 }
