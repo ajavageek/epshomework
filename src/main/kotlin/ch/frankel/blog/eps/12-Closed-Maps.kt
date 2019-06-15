@@ -9,21 +9,19 @@ private const val IS_STOP_WORD = "is_stop_word"
 private const val INCREMENT_COUNT = "increment_count"
 private const val SORTED = "sorted"
 
-typealias Runnable = () -> Unit
+typealias Callable<T, R> = () -> Map<T, R>
 typealias Supplier<T> = () -> T
 typealias Function<T, R> = (T) -> R
 typealias Consumer<T> = (T) -> Unit
 
-internal fun MutableMap<String, Any>.extractWords(filename: String) {
-    this[DATA] = read(filename)
+internal fun Map<String, Any>.extractWords(filename: String) = this +
+        (DATA to read(filename)
         .flatMap { it.split("\\W|_".toRegex()) }
         .filter { it.isNotBlank() && it.length >= 2 }
-        .map(String::toLowerCase)
-}
+        .map(String::toLowerCase))
 
-internal fun MutableMap<String, Any>.loadStopWords() {
-    this[STOP_WORDS] = read("stop_words.txt")[0].split(",")
-}
+internal fun Map<String, Any>.loadStopWords() = this +
+        (STOP_WORDS to read("stop_words.txt")[0].split(","))
 
 internal fun MutableMap<String, Any>.incrementCount(word: String) {
     (this[FREQUENCIES] as MutableMap<String, Int>).apply {
@@ -32,15 +30,15 @@ internal fun MutableMap<String, Any>.incrementCount(word: String) {
 }
 
 fun run(filename: String): Map<*, *> {
-    val dataStorageObj = mutableMapOf<String, Any>()
-    dataStorageObj[INIT] = { dataStorageObj.extractWords(filename) }
-    dataStorageObj[WORDS] = { dataStorageObj[DATA] }
-    (dataStorageObj["init"] as () -> Unit)()
+    var dataStorageObj = mapOf<String, Any>()
+    dataStorageObj = dataStorageObj + (INIT to { dataStorageObj.extractWords(filename) })
+    dataStorageObj = dataStorageObj + (WORDS to { dataStorageObj[DATA] })
+    dataStorageObj = (dataStorageObj[INIT] as Callable<String, Any>)()
 
-    val stopWordsObj = mutableMapOf<String, Any>()
-    stopWordsObj[INIT] = { stopWordsObj.loadStopWords() }
-    stopWordsObj[IS_STOP_WORD] = { it: String -> (stopWordsObj[STOP_WORDS] as List<*>).contains(it) }
-    (stopWordsObj["init"] as () -> Unit)()
+    var stopWordsObj = mapOf<String, Any>()
+    stopWordsObj = stopWordsObj + (INIT to { stopWordsObj.loadStopWords() })
+    stopWordsObj = stopWordsObj + (IS_STOP_WORD to { it: String -> (stopWordsObj[STOP_WORDS] as List<*>).contains(it) })
+    stopWordsObj = (stopWordsObj[INIT] as Callable<String, Any>)()
 
     val wordFreqsObj = mutableMapOf<String, Any>(
         FREQUENCIES to mutableMapOf<String, Int>()
