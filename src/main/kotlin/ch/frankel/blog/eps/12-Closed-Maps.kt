@@ -30,15 +30,15 @@ internal fun MutableMap<String, Any>.incrementCount(word: String) {
 }
 
 fun run(filename: String): Map<*, *> {
-    var dataStorageObj = mapOf<String, Any>()
-    dataStorageObj = dataStorageObj + (INIT to { dataStorageObj.extractWords(filename) })
-    dataStorageObj = dataStorageObj + (WORDS to { dataStorageObj[DATA] })
-    dataStorageObj = (dataStorageObj[INIT] as Callable<String, Any>)()
+    val dataStorageObj = mapOf<String, Any>()
+        .run { this + (INIT to { extractWords(filename) }) }
+        .run { (this[INIT] as Callable<String, Any>)() }
+        .run { this + (WORDS to { this[DATA] })}
 
-    var stopWordsObj = mapOf<String, Any>()
-    stopWordsObj = stopWordsObj + (INIT to { stopWordsObj.loadStopWords() })
-    stopWordsObj = stopWordsObj + (IS_STOP_WORD to { it: String -> (stopWordsObj[STOP_WORDS] as List<*>).contains(it) })
-    stopWordsObj = (stopWordsObj[INIT] as Callable<String, Any>)()
+    val stopWordsObj = mapOf<String, Any>()
+        .run { this + (INIT to { loadStopWords() })}
+        .run { (this[INIT] as Callable<String, Any>)() }
+        .run { this + (IS_STOP_WORD to { it: String -> (this[STOP_WORDS] as List<*>).contains(it) }) }
 
     val wordFreqsObj = mutableMapOf<String, Any>(
         FREQUENCIES to mutableMapOf<String, Int>()
