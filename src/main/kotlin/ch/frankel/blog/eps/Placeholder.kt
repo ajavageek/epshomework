@@ -1,6 +1,6 @@
 package ch.frankel.blog.eps
 
-import ch.frankel.blog.eps.EventManager.Event
+import ch.frankel.blog.eps.EventManager.*
 
 /* For compiling purpose. */
 fun run(filename: String): Map<String, Int> {
@@ -9,7 +9,7 @@ fun run(filename: String): Map<String, Int> {
         StopWordsFilter(this)
         WordFrequencyCounter(this)
         val app = WordFrequencyApplication(this)
-        publish(Event("run", filename))
+        publish(Event(Type.Run, filename))
         return app.result
     }
 }

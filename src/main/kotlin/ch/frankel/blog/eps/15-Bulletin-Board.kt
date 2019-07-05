@@ -1,21 +1,28 @@
 package ch.frankel.blog.eps
 
 import ch.frankel.blog.eps.EventManager.Event
+import ch.frankel.blog.eps.EventManager.Type.*
+
+typealias EventConsumer = (Event<out Any>) -> Unit
 
 class EventManager {
 
-    class Event<T>(val type: String, val payload: T? = null)
+    enum class Type {
+        Load, Start, Word, EOF, ValidWord, GetResult, Result, Run
+    }
 
-    private val subscriptions = mutableMapOf<String, List<(Event<Any>) -> Unit>>()
+    class Event<T>(val type: Type, val payload: T? = null)
 
-    fun <T> subscribe(type: String, handler: (Event<T>) -> Unit) {
-        subscriptions.merge(type, listOf(handler as (Event<Any>) -> Unit)) { existing, new ->
+    private val subscriptions = mutableMapOf<Type, List<EventConsumer>>()
+
+    fun <T> subscribe(type: Type, handler: (Event<T>) -> Unit) {
+        subscriptions.merge(type, listOf(handler as EventConsumer)) { existing, new ->
             existing + new
         }
     }
 
-    fun <T> publish(event: Event<T>) = subscriptions[event.type]?.let { handlers ->
-        handlers.forEach { it(event as Event<Any>) }
+    fun publish(event: Event<out Any>) = subscriptions[event.type]?.let { handlers ->
+        handlers.forEach { it(event) }
     }
 }
 
@@ -24,8 +31,8 @@ class DataStorage(private val eventManager: EventManager) {
     private lateinit var data: List<String>
 
     init {
-        eventManager.subscribe<String>("load") { load(it) }
-        eventManager.subscribe<Unit>("start") { produceWords(it) }
+        eventManager.subscribe<String>(Load) { load(it) }
+        eventManager.subscribe<Unit>(Start) { produceWords() }
     }
 
     private fun load(event: Event<String>) {
@@ -37,11 +44,11 @@ class DataStorage(private val eventManager: EventManager) {
         }
     }
 
-    private fun produceWords(@Suppress("UNUSED_PARAMETER") ignore: Event<Unit>) {
+    private fun produceWords() {
         for (word in data) {
-            eventManager.publish(Event("word", word))
+            eventManager.publish(Event(Word, word))
         }
-        eventManager.publish(Event<Unit>("eof"))
+        eventManager.publish(Event(EOF))
     }
 }
 
@@ -50,8 +57,8 @@ class StopWordsFilter(private val eventManager: EventManager) {
     private lateinit var stopWords: List<String>
 
     init {
-        eventManager.subscribe<Unit>("load") { load(it) }
-        eventManager.subscribe<String>("word") { isStopWord(it) }
+        eventManager.subscribe<Unit>(Load) { load(it) }
+        eventManager.subscribe<String>(Word) { isStopWord(it) }
     }
 
     private fun load(@Suppress("UNUSED_PARAMETER") ignore: Event<Unit>) {
@@ -60,7 +67,7 @@ class StopWordsFilter(private val eventManager: EventManager) {
 
     private fun isStopWord(event: Event<String>) {
         if (!stopWords.contains(event.payload))
-            eventManager.publish(Event("validWord", event.payload))
+            eventManager.publish(Event(ValidWord, event.payload))
     }
 }
 
@@ -69,18 +76,21 @@ class WordFrequencyCounter(private val eventManager: EventManager) {
     private val wordFreqs = mutableMapOf<String, Int>()
 
     init {
-        eventManager.subscribe<String>("validWord") { incrementCount(it) }
-        eventManager.subscribe<Unit>("getResult") { getTop25(it) }
+        eventManager.subscribe<String>(ValidWord) { incrementCount(it) }
+        eventManager.subscribe<Unit>(GetResult) { getTop25() }
     }
 
     private fun incrementCount(event: Event<String>) {
-        if (event.payload != null) {
-            wordFreqs.merge(event.payload, 1) { value, _ -> value + 1 }
-        }
+        if (event.payload != null) wordFreqs.merge(event.payload, 1) { value, _ -> value + 1 }
     }
 
-    private fun getTop25(@Suppress("UNUSED_PARAMETER") ignore: Event<Unit>) {
-        eventManager.publish(Event("result", wordFreqs.toList().sortedByDescending { it.second }.take(25).toMap()))
+    private fun getTop25() {
+        eventManager.publish(
+            Event(
+                Result,
+                wordFreqs.toList().sortedByDescending { it.second }.take(25).toMap()
+            )
+        )
     }
 }
 
@@ -89,21 +99,21 @@ class WordFrequencyApplication(private val eventManager: EventManager) {
     lateinit var result: Map<String, Int>
 
     init {
-        eventManager.subscribe<String>("run") { run(it) }
-        eventManager.subscribe<String>("eof") { stop(it) }
-        eventManager.subscribe<Map<String, Int>>("result") { store(it) }
+        eventManager.subscribe<String>(Run) { run(it) }
+        eventManager.subscribe<Unit>(EOF) { stop() }
+        eventManager.subscribe<Map<String, Int>>(Result) { store(it) }
     }
 
-    private fun stop(@Suppress("UNUSED_PARAMETER") ignore: Event<String>) {
-        eventManager.publish<Unit>(Event("getResult"))
+    private fun stop() {
+        eventManager.publish(Event(GetResult))
     }
 
     private fun store(event: Event<Map<String, Int>>) {
-        if (event.payload != null) { result = event.payload }
+        if (event.payload != null) result = event.payload
     }
 
     private fun run(event: Event<String>) {
-        eventManager.publish(Event("load", event.payload))
-        eventManager.publish(Event("start", Unit))
+        eventManager.publish(Event(Load, event.payload))
+        eventManager.publish(Event(Start))
     }
 }
